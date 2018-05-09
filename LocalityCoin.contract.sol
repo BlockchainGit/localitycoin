@@ -115,37 +115,6 @@ contract LocalityCoin is Abstract, Owned, Suspendable, ERC20Token {
     { }
 
     /**
-     * Getter functions
-     */
-    function getLocality() view public returns (string) {
-        return locality;
-    }
-    function getCountry() view public returns (string) {
-        return country;
-    }
-    function getName() view public returns (string) {
-        return name;
-    }
-    function getSymbol() view public returns (string) {
-        return symbol;
-    }
-    function getSymbolCharacter() view public returns (string) {
-        return symbolCharacter;
-    }
-    function getCreator() view public returns (string) {
-        return creator;
-    }
-    function getCreatorEmail() view public returns (string) {
-        return creatorEmail;
-    }
-    function getBlurb() view public returns (string) {
-        return blurb;
-    }
-    function getMiscellaneous() view public returns (string) {
-        return miscellaneous;
-    }
-
-    /**
      * Setter functions
      */
     function setLocality(string newValue)
