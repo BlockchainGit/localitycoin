@@ -63,7 +63,7 @@ contract LocalityCoin is Abstract, Owned, Suspendable, ERC20Token {
     string public miscellaneous;
 
     mapping (address => uint96) public localityCoinBalance;
-    mapping (address => mapping (address => uint96)) public allowance;
+    mapping (address => mapping (address => uint96)) public allowed;
 
     // Notify clients of the amount reverted.
     event RevertToContract(
@@ -114,31 +114,44 @@ contract LocalityCoin is Abstract, Owned, Suspendable, ERC20Token {
     payable
     { }
 
-    /**
-     * Setter functions
-     */
+
+    /***************************************************************************
+     *  Setter functions
+     **************************************************************************/
+
     function setLocality(string newValue)
-    onlyOwner public returns (string) {
+    onlyOwner public
+    returns (string) {
         return locality = newValue;
     }
+
     function setCountry(string newValue)
-    onlyOwner public returns (string) {
+    onlyOwner public
+    returns (string) {
         return country = newValue;
     }
+
     function setName(string newValue)
-    onlyOwner public returns (string) {
+    onlyOwner public
+    returns (string) {
         return name = newValue;
     }
+
     function setSymbol(string newValue)
-    onlyOwner public returns (string) {
+    onlyOwner public
+    returns (string) {
         return symbol = newValue;
     }
+
     function setSymbolCharacter(string newValue)
-    onlyOwner public returns (string) {
+    onlyOwner public
+    returns (string) {
         return symbolCharacter = newValue;
     }
+
     function setCreator(string newValue)
-    onlyOwner public returns (string) {
+    onlyOwner public
+    returns (string) {
         return creator = newValue;
     }
     function setCreatorEmail(string newValue)
@@ -154,75 +167,127 @@ contract LocalityCoin is Abstract, Owned, Suspendable, ERC20Token {
         return miscellaneous = newValue;
     }
 
+
+    /***************************************************************************
+     *  ERC20 function implemenations
+     **************************************************************************/
+
     /**
      * Total Supply
      * 
      * The total number of whole coins.
      */
     function totalSupply()
-    view
-    public
-    returns (uint supply) {
+    external
+    constant
+    returns (uint) {
         return totalWholeUnits;
+    }
+
+    /**
+     * Get the balance of an address
+     * 
+     * Returns the number of minimum units of localitycoin owned by
+     * `tokenOwner`.
+     * 
+     * @param tokenOwner The address to query
+     */
+    function balanceOf(address tokenOwner)
+    external
+    constant
+    returns (uint balance) {
+        return localityCoinBalance[tokenOwner];
+    }
+
+    /**
+     * Get allowance
+     * 
+     * Returns the amount of tokens approved by the owner that can be
+     * transferred to the spender's account.
+     * 
+     * @param tokenOwner The owner of the tokens
+     * @param spender The address authorised to spend
+     */
+    function allowance(address tokenOwner, address spender)
+    external
+    constant
+    returns (uint remaining) {
+        return allowed[tokenOwner][spender];
     }
 
     /**
      * Transfer localitycoin
      *
-     * Send `_volume` localitycoin to `_to` from the caller's account.
+     * Send `tokens` localitycoin to `to` from the caller's account.
      *
-     * @param _to The address of the recipient
-     * @param _volume the amount to send
+     * @param to The address of the recipient
+     * @param tokens The amount to send
      */
-    function transfer(address _to, uint256 _volume)
-    onlyWhenActive
-    public
+    function transfer(address to, uint tokens)
+    external
     returns (bool success) {
-        _transfer(msg.sender, _to, uint96(_volume));
+        uint96 volume = uint96(tokens);
+        _transfer(msg.sender, to, volume);
         return true;
     }
 
     /**
      * Transfer localitycoin from another address
      *
-     * Send `_volume` localitycoin to `_to` on behalf of `_from`.
+     * Send `volume` localitycoin to `to` on behalf of `from`.
      *
-     * @param _from The address of the sender
-     * @param _to The address of the recipient
-     * @param _volume the amount to send
+     * @param from The address of the sender
+     * @param to The address of the recipient
+     * @param tokens The amount to send
      */
-    function transferFrom(address _from, address _to, uint256 _volume)
+    function transferFrom(address from, address to, uint tokens)
     onlyWhenActive
     public
     returns (bool success) {
-        uint96 thisAllowance = allowance[_from][msg.sender];
-        uint96 volume = uint96(_volume);
+        uint96 thisAllowance = allowed[from][msg.sender];
+        uint96 volume = uint96(tokens);
         require(
             volume <= thisAllowance,
             "The allowance is insufficient for this transfer"
         );
-        allowance[_from][msg.sender] = thisAllowance.subtract(volume);
-        _transfer(_from, _to, volume);
+        allowed[from][msg.sender] = thisAllowance.subtract(volume);
+        _transfer(from, to, volume);
         return true;
     }
 
     /**
      * Set allowance for another address
      *
-     * Allows `_spender` to spend no more than `_volume` tokens on the caller's
+     * Allows `spender` to spend no more than `volume` tokens on the caller's
      * behalf.
      *
-     * @param _spender The address authorized to spend
-     * @param _volume the max amount they can spend
+     * @param spender The address authorized to spend
+     * @param tokens the max amount they can spend
      */
-    function approve(address _spender, uint _volume)
+    function approve(address spender, uint tokens)
     onlyWhenActive
     public
     returns (bool success) {
-        uint96 volume = uint96(_volume);
-        allowance[msg.sender][_spender] = volume;
-        emit Approval(msg.sender, _spender, volume);
+        uint96 volume = uint96(tokens);
+        allowed[msg.sender][spender] = volume;
+        emit Approval(msg.sender, spender, volume);
         return true;
+    }
+
+    /***************************************************************************
+     *  Other functions
+     **************************************************************************/
+
+    /**
+     * Get the caller's balance
+     * 
+     * Returns the number of minimum units of localitycoin owned by the caller.
+     */
+    function balanceOfThis()
+    view
+    public
+    returns (uint) {
+        return localityCoinBalance[msg.sender];
     }
 
     /**
@@ -255,7 +320,6 @@ contract LocalityCoin is Abstract, Owned, Suspendable, ERC20Token {
      * @param _volume the amount of localitycoin to revert
      */
     function revertToContractFrom(address _from, uint96 _volume)
-    onlyWhenActive
     public
     returns (bool success) {
         _transfer(_from, this, _volume);
@@ -271,22 +335,9 @@ contract LocalityCoin is Abstract, Owned, Suspendable, ERC20Token {
      * @param _volume the amount of money to revert
      */
     function revertToContract(uint96 _volume)
-    onlyWhenActive
     public
     returns (bool success) {
         return revertToContractFrom(msg.sender, _volume);
-    }
-
-    /**
-     * Get the caller's balance
-     * 
-     * Returns the number of minimum units of localitycoin owned by the caller.
-     */
-    function balanceOf()
-    view
-    public
-    returns (uint) {
-        return localityCoinBalance[msg.sender];
     }
 
     /**
@@ -350,7 +401,6 @@ contract LocalityCoin is Abstract, Owned, Suspendable, ERC20Token {
      */
     function buy()
     payable
-    onlyWhenActive
     public
     returns (uint96 volume) {
         uint96 value = uint96(msg.value);
@@ -369,7 +419,6 @@ contract LocalityCoin is Abstract, Owned, Suspendable, ERC20Token {
      * Redeem localitycoin for ether.
      */
     function sell(uint96 _amount)
-    onlyWhenActive
     public
     returns (uint96 value){
         _transfer(msg.sender, this, _amount); // from seller to contract
@@ -384,6 +433,7 @@ contract LocalityCoin is Abstract, Owned, Suspendable, ERC20Token {
      * Internal transfer, only can be called by this contract
      */
     function _transfer(address _from, address _to, uint96 _value)
+    onlyWhenActive
     internal
     {
         require(_to != 0x0, "Cannot transfer to 0x0");
